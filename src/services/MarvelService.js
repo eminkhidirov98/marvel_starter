@@ -4,14 +4,12 @@ class MarvelService {
 
   getResource = async (url) => {
     const res = await fetch(url);
-
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(
         `Could not fetch ${url}, status: ${res.status}, message: ${errorText}`
       );
     }
-
     return await res.json();
   };
 
@@ -19,24 +17,41 @@ class MarvelService {
     const res = await this.getResource(
       `${this._apiBase}characters?limit=10&${this._apiKey}`
     );
-
     if (!res.data || !res.data.results) {
       throw new Error('Нет данных characters в ответе API');
     }
-
     return res.data.results;
   };
 
   getCharacter = async (id) => {
-    const res = await this.getResource(
-      `${this._apiBase}characters/${id}?${this._apiKey}`
-    );
-
-    if (!res.data || !res.data.results || res.data.results.length === 0) {
-      throw new Error('Нет данных персонажа в ответе API');
+    try {
+      const res = await this.getResource(
+        `${this._apiBase}characters/${id}?${this._apiKey}`
+      );
+      if (!res.data || !res.data.results || res.data.results.length === 0) {
+        throw new Error('Нет данных персонажа в ответе API');
+      }
+      return this._transformCharacter(res.data.results[0]);
+    } catch (error) {
+      console.error(`Ошибка получения персонажа с ID ${id}:`, error);
+      throw error;
     }
+  };
 
-    return this._transformCharacter(res.data.results[0]);
+  // Альтернативный метод - получить случайного персонажа из списка
+  getRandomCharacter = async () => {
+    try {
+      const characters = await this.getAllCharacters();
+      if (characters.length === 0) {
+        throw new Error('Не удалось получить список персонажей');
+      }
+      const randomChar =
+        characters[Math.floor(Math.random() * characters.length)];
+      return this._transformCharacter(randomChar);
+    } catch (error) {
+      console.error('Ошибка получения случайного персонажа:', error);
+      throw error;
+    }
   };
 
   _transformCharacter = (char) => {
